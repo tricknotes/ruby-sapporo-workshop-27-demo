@@ -1,0 +1,12 @@
+帳票一覧
+
+<ul>
+  {{#each}}
+    <li>
+      {{createdAt}}
+      {{#link-to 'sheet' this}}
+        詳細を見る
+      {{/link-to}}
+    </li>
+  {{/each}}
+</ul>

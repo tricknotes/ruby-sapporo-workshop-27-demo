@@ -1,0 +1,35 @@
+帳票作成
+
+<table>
+  <tr>
+    <th>商品名</th>
+    <th>単価</th>
+    <th>個数</th>
+    <th>小計</th>
+  </tr>
+  {{#each lines}}
+  <tr>
+    <td>{{input value=productName}}</td>
+    <td>{{input type="number" value=unitPrice}}</td>
+    <td>{{input type="number" value=count}}</td>
+    <td>{{subtotal}}</td>
+    <td>
+  <button {{action deleteOrderLine this}}>
+    削除
+  </button>
+    </td>
+  </tr>
+  {{/each}}
+</table>
+
+<div>
+  合計: {{total}}
+</div>
+
+<button {{action addOrderLine}}>
+  行を追加
+</button>
+
+<button {{action addSheet}}>
+  登録する
+</button>

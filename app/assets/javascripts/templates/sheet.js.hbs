@@ -1,0 +1,28 @@
+<h1>帳票詳細 #{{id}}</h1>
+
+作成日時: {{createdAt}}
+
+<table>
+  <tr>
+    <th>商品名</th>
+    <th>単価</th>
+    <th>個数</th>
+    <th>小計</th>
+  </tr>
+  {{#each lines}}
+    <tr>
+      <td>{{productName}}</td>
+      <td>{{unitPrice}}</td>
+      <td>{{count}}</td>
+      <td>
+        {{subtotal}}
+      </td>
+    </tr>
+  {{/each}}
+  <tr>
+    <td colspan="3"></td>
+    <td>
+      {{total}}
+    </td>
+  </tr>
+</table>
