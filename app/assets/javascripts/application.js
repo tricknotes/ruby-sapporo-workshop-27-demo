@@ -19,6 +19,6 @@
 //= require demo_app
 
 // for more details see: http://emberjs.com/guides/application/
-DemoApp = Ember.Application.create();
+Account = Ember.Application.create();
 
 //= require_tree .
