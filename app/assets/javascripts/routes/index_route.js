@@ -1,7 +1,7 @@
 Account.IndexRoute = Ember.Route.extend({
   model: function() {
     var sheet = Account.Sheet.create({
-      lines: [
+      orderLines: [
         Account.OrderLine.create(),
         Account.OrderLine.create()
       ]
