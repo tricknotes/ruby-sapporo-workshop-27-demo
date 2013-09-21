@@ -1,3 +1,3 @@
 class OrderLineSerializer < ActiveModel::Serializer
-  attributes :id
+  attributes :id, :product_name, :unit_price, :count
 end
