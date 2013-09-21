@@ -1,5 +1,5 @@
 Account.SheetsRoute = Ember.Route.extend({
   model: function() {
-    return Account.Sheet.sheets;
+    return this.get('store').findAll('sheet');
   }
 });

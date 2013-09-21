@@ -1,18 +1,18 @@
 Account.IndexController = Ember.ObjectController.extend({
   actions: {
     addOrderLine: function() {
-      this.get('orderLines').addObject(Account.OrderLine.create());
+      this.get('orderLines').createRecord();
     },
 
     deleteOrderLine: function(orderLine) {
-      this.get('orderLines').removeObject(orderLine);
+      // TODO unload this.
+      // orderLine.unloadRecord();
     },
 
     addSheet: function() {
       var sheet = this.get('model');
 
-      sheet.set('createdAt', new Date());
-      Account.Sheet.sheets.addObject(sheet);
+      sheet.save();
 
       this.transitionToRoute('sheets');
     }
