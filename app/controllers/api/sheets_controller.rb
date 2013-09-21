@@ -17,6 +17,14 @@ class Api::SheetsController < ActionController::Base
     render json: @sheet
   end
 
+  def destroy
+    @sheet = Sheet.find(params[:id])
+
+    @sheet.destroy
+
+    render json: @sheet
+  end
+
   private
 
   def sheet_params
