@@ -7,6 +7,7 @@ Account.IndexController = Ember.ObjectController.extend({
     deleteOrderLine: function(orderLine) {
       // TODO unload this.
       // orderLine.unloadRecord();
+      this.get('orderLines').removeObject(orderLine);
     },
 
     addSheet: function() {
