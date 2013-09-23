@@ -1,4 +1,4 @@
-class Api::SheetsController < ActionController::Base
+class Api::SheetsController < Api::ApplicationController
   def index
     @sheets = Sheet.includes(:order_lines)
 
