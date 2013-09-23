@@ -7,7 +7,7 @@
 
 
 
-// Last commit: 4d717bf (2013-09-21 21:24:59 -0700)
+// Last commit: 33888d1 (2013-09-22 22:03:34 -0700)
 
 
 (function() {
@@ -205,6 +205,7 @@ DS.JSONSerializer = Ember.Object.extend({
   extractDeleteRecord: aliasMethod('extractSave'),
 
   extractFind: aliasMethod('extractSingle'),
+  extractFindBelongsTo: aliasMethod('extractSingle'),
   extractSave: aliasMethod('extractSingle'),
 
   extractSingle: function(store, type, payload) {
@@ -1727,6 +1728,15 @@ DS.Store = Ember.Object.extend(DS._Mappable, {
     return records;
   },
 
+  findBelongsTo: function(owner, link, relationship, resolver) {
+    var adapter = this.adapterFor(owner.constructor);
+
+    Ember.assert("You tried to load a belongsTo relationship but you have no adapter (for " + owner.constructor + ")", adapter);
+    Ember.assert("You tried to load a belongsTo relationship from a specified `link` in the original payload but your adapter does not implement `findBelongsTo`", adapter.findBelongsTo);
+
+    _findBelongsTo(adapter, this, owner, link, relationship, resolver);
+  },
+
   /**
     This method delegates a query to the adapter. This is the one place where
     adapter-level semantics are exposed to the application.
@@ -2629,6 +2639,18 @@ function _findHasMany(adapter, store, record, link, relationship, resolver) {
 
     var records = store.pushMany(relationship.type, payload);
     record.updateHasMany(relationship.key, records);
+  }).then(resolver.resolve, resolver.reject);
+}
+
+function _findBelongsTo(adapter, store, record, link, relationship, resolver) {
+  var promise = adapter.findBelongsTo(store, record, link, relationship),
+      serializer = serializerForAdapter(adapter, relationship.type);
+
+  return resolve(promise).then(function(payload) {
+    payload = serializer.extract(store, relationship.type, payload, null, 'findBelongsTo');
+
+    var record = store.push(relationship.type, payload);
+    record.updateBelongsTo(relationship.key, record);
   }).then(resolver.resolve, resolver.reject);
 }
 
@@ -3733,6 +3755,10 @@ DS.Model = Ember.Object.extend(Ember.Evented, {
     this.hasManyDidChange(name);
   },
 
+  updateBelongsTo: function(name, record) {
+    this._data[name] = record;
+  },
+
   rollback: function() {
     this._attributes = {};
 
@@ -4581,19 +4607,23 @@ var get = Ember.get, set = Ember.set,
 function asyncBelongsTo(type, options, meta) {
   return Ember.computed(function(key, value) {
     var data = get(this, 'data'),
-        store = get(this, 'store'),
-        belongsTo;
+        store = get(this, 'store');
 
     if (arguments.length === 2) {
       Ember.assert("You can only add a '" + type + "' record to this relationship", !value || value instanceof store.modelFor(type));
       return value === undefined ? null : value;
     }
 
-    belongsTo = data[key];
+    var link = data.links && data.links[key],
+        belongsTo = data[key];
 
     if(!isNone(belongsTo)) {
       var promise = store.fetchRecord(belongsTo) || Ember.RSVP.resolve(belongsTo);
       return DS.PromiseObject.create({promise: promise});
+    } else if (link) {
+      var resolver = Ember.RSVP.defer();
+      store.findBelongsTo(this, link, meta, resolver);
+      return DS.PromiseObject.create({ promise: resolver.promise });
     } else {
       return null;
     }
@@ -4601,7 +4631,12 @@ function asyncBelongsTo(type, options, meta) {
 }
 
 DS.belongsTo = function(type, options) {
-  Ember.assert("The first argument DS.belongsTo must be a model type or string, like DS.belongsTo(App.Person)", !!type && (typeof type === 'string' || DS.Model.detect(type)));
+  if (typeof type === 'object') {
+    options = type;
+    type = undefined;
+  } else {
+    Ember.assert("The first argument DS.belongsTo must be a model type or string, like DS.belongsTo(App.Person)", !!type && (typeof type === 'string' || DS.Model.detect(type)));
+  }
 
   options = options || {};
 
@@ -5100,9 +5135,12 @@ DS.Model.reopenClass({
         meta.key = name;
         type = meta.type;
 
-        if (!type) {
+        if (!type && meta.kind === 'hasMany') {
           type = Ember.String.singularize(name);
+        } else if (!type) {
+          type = name;
         }
+
         if (typeof type === 'string') {
           meta.type = this.store.modelFor(type);
         }
@@ -6935,6 +6973,39 @@ DS.RESTAdapter = DS.Adapter.extend({
     @returns Promise
   */
   findHasMany: function(store, record, url) {
+    return this.ajax(url, 'GET');
+  },
+
+  /**
+    Called by the store in order to fetch a JSON array for
+    the unloaded records in a belongs-to relationship that were originally
+    specified as a URL (inside of `links`).
+
+    For example, if your original payload looks like this:
+
+    ```js
+    {
+      "person": {
+        "id": 1,
+        "name": "Tom Dale",
+        "links": { "group": "/people/1/group" }
+      }
+    }
+    ```
+
+    This method will be called with the parent record and `/people/1/group`.
+
+    It will make an Ajax request to the originally specified URL.
+
+    @method findBelongsTo
+    @see RESTAdapter/buildURL
+    @see RESTAdapter/ajax
+    @param {DS.Store} store
+    @param {DS.Model} record
+    @param {String} url
+    @returns Promise
+  */
+  findBelongsTo: function(store, record, url) {
     return this.ajax(url, 'GET');
   },
 
