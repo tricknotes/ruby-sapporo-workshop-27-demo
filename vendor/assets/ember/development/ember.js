@@ -8,8 +8,8 @@
 // ==========================================================================
 
 
-// Version: v1.0.0-145-gb55288a
-// Last commit: b55288a (2013-09-23 07:55:59 -0700)
+// Version: v1.0.0-147-g60b68ef
+// Last commit: 60b68ef (2013-09-23 18:34:52 -0700)
 
 
 (function() {
@@ -190,8 +190,8 @@ if (!Ember.testing) {
 // ==========================================================================
 
 
-// Version: v1.0.0-145-gb55288a
-// Last commit: b55288a (2013-09-23 07:55:59 -0700)
+// Version: v1.0.0-147-g60b68ef
+// Last commit: 60b68ef (2013-09-23 18:34:52 -0700)
 
 
 (function() {
@@ -35880,8 +35880,8 @@ Ember.Application.reopenClass({
     var initializers = get(this, 'initializers');
 
     Ember.assert("The initializer '" + initializer.name + "' has already been registered", !initializers.findBy('name', initializers.name));
-    Ember.assert("An injection cannot be registered with both a before and an after", !(initializer.before && initializer.after));
-    Ember.assert("An injection cannot be registered without an injection function", Ember.canInvoke(initializer, 'initialize'));
+    Ember.assert("An initializer cannot be registered with both a before and an after", !(initializer.before && initializer.after));
+    Ember.assert("An initializer cannot be registered without an initialize function", Ember.canInvoke(initializer, 'initialize'));
 
     initializers.push(initializer);
   },
