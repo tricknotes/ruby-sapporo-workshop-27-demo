@@ -1,13 +1,18 @@
-帳票一覧
+<h1>帳票一覧</h1>
+
+{{#unless this}}
+  まだ帳票は作成されていません
+{{/unless}}
 
 <ul>
   {{#each}}
     <li>
       #{{id}}:
-      {{createdAt}}
+      {{date createdAt}}
       {{#link-to 'sheet' this}}
         詳細を見る
       {{/link-to}}
+      |
       <a href="#" {{action 'deleteSheet' this}}>削除</a>
     </li>
   {{/each}}

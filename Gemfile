@@ -23,3 +23,6 @@ gem 'ember-data-source', '~> 1.0.0.beta.2'
 
 # Use jquery as the JavaScript library
 gem 'jquery-rails'
+gem 'momentjs-rails'
+
+gem 'font-awesome-rails'

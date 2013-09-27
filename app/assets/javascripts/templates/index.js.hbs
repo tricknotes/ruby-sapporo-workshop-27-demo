@@ -1,4 +1,4 @@
-帳票作成
+<h1>帳票登録</h1>
 
 <table>
   <tr>
@@ -6,30 +6,39 @@
     <th>単価</th>
     <th>個数</th>
     <th>小計</th>
+    <th></th>
   </tr>
   {{#each orderLines}}
+    <tr>
+      <td>{{input value=productName placeholder='商品名を入力してください'}}</td>
+      <td>{{input type=number value=unitPrice}}</td>
+      <td>{{input type=number value=count}}</td>
+      <td>
+        <i class="icon-jpy"></i>
+        {{subtotal}}
+      </td>
+      <td>
+        <button {{action 'deleteOrderLine' this}}>
+          <i class="icon-remove"></i>
+        </button>
+      </td>
+    </tr>
+  {{/each}}
   <tr>
-    <td>{{input value=productName}}</td>
-    <td>{{input type="number" value=unitPrice}}</td>
-    <td>{{input type="number" value=count}}</td>
-    <td>{{subtotal}}</td>
+    <td colspan="3"></td>
     <td>
-  <button {{action deleteOrderLine this}}>
-    削除
-  </button>
+      <i class="icon-jpy"></i>
+      {{total}}
     </td>
   </tr>
-  {{/each}}
 </table>
 
-<div>
-  合計: {{total}}
-</div>
-
-<button {{action addOrderLine}}>
+<button {{action 'addOrderLine'}}>
+  <i class="icon-double-angle-down"></i>
   行を追加
 </button>
 
-<button {{action addSheet}}>
+<button {{action 'addSheet'}}>
+  <i class="icon-plus"></i>
   登録する
 </button>
