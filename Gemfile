@@ -30,4 +30,5 @@ gem 'font-awesome-rails'
 group :test do
   gem 'capybara-webkit'
   gem 'rspec-rails'
+  gem 'database_rewinder'
 end
