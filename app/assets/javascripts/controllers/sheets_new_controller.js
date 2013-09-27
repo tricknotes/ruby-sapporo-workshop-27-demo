@@ -13,9 +13,11 @@ Account.SheetsNewController = Ember.ObjectController.extend({
     addSheet: function() {
       var sheet = this.get('model');
 
-      sheet.save();
+      var self = this;
 
-      this.transitionToRoute('sheets');
+      sheet.save().then(function() {
+        self.transitionToRoute('sheets');
+      });
     }
   }
 });
