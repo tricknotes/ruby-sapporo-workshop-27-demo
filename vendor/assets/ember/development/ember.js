@@ -8,8 +8,8 @@
 // ==========================================================================
 
 
-// Version: v1.0.0-147-g60b68ef
-// Last commit: 60b68ef (2013-09-23 18:34:52 -0700)
+// Version: v1.0.0-184-g1c31d42
+// Last commit: 1c31d42 (2013-09-26 15:10:57 -0700)
 
 
 (function() {
@@ -148,15 +148,21 @@ Ember.deprecate = function(message, test) {
 
 
 /**
+  Alias an old, deprecated method with its new counterpart.
+
   Display a deprecation warning with the provided message and a stack trace
-  (Chrome and Firefox only) when the wrapped method is called.
+  (Chrome and Firefox only) when the assigned method is called.
 
   Ember build tools will not remove calls to `Ember.deprecateFunc()`, though
   no warnings will be shown in production.
 
+  ```javascript
+  Ember.oldMethod = Ember.deprecateFunc("Please use the new, updated method", Ember.newMethod);
+  ```
+
   @method deprecateFunc
   @param {String} message A description of the deprecation.
-  @param {Function} func The function to be deprecated.
+  @param {Function} func The new function called to replace its deprecated counterpart.
   @return {Function} a new function that wrapped the original function with a deprecation warning
 */
 Ember.deprecateFunc = function(message, func) {
@@ -190,8 +196,8 @@ if (!Ember.testing) {
 // ==========================================================================
 
 
-// Version: v1.0.0-147-g60b68ef
-// Last commit: 60b68ef (2013-09-23 18:34:52 -0700)
+// Version: v1.0.0-184-g1c31d42
+// Last commit: 1c31d42 (2013-09-26 15:10:57 -0700)
 
 
 (function() {
@@ -315,11 +321,13 @@ Ember.config = Ember.config || {};
 /**
   Hash of enabled Canary features. Add to before creating your application.
 
+  You can also define `ENV.FEATURES` if you need to enable features flagged at runtime.
+
   @property FEATURES
   @type Hash
 */
 
-Ember.FEATURES = {};
+Ember.FEATURES = Ember.ENV.FEATURES || {};
 
 /**
   Test that a feature is enabled. Parsed by Ember's build tools to leave
@@ -7024,7 +7032,9 @@ function applyConcatenatedProperties(obj, key, value, values) {
       return Ember.makeArray(baseValue).concat(value);
     }
   } else {
-    return Ember.makeArray(value);
+    // Make sure this mixin has its own array so it is not
+    // accidentally mutated by another child's interactions
+    return Ember.makeArray(value).slice();
   }
 }
 
@@ -7505,10 +7515,9 @@ Alias.prototype = new Ember.Descriptor();
   @deprecated Use `Ember.aliasMethod` or `Ember.computed.alias` instead
 */
 Ember.alias = function(methodName) {
+  Ember.deprecate("Ember.alias is deprecated. Please use Ember.aliasMethod or Ember.computed.alias instead.");
   return new Alias(methodName);
 };
-
-Ember.alias = Ember.deprecateFunc("Ember.alias is deprecated. Please use Ember.aliasMethod or Ember.computed.alias instead.", Ember.alias);
 
 /**
   Makes a method available via an additional name.
@@ -8622,6 +8631,10 @@ define("container",
         } else {
           Ember.deprecate('register("'+type +'", "'+ name+'") is now deprecated in-favour of register("'+type+':'+name+'");', false);
           fullName = type + ":" + name;
+        }
+
+        if (factory === undefined) {
+          throw new TypeError('Attempting to register an unknown factory: `' + fullName + '`');
         }
 
         var normalizedName = this.normalize(fullName);
@@ -10526,7 +10539,36 @@ Ember.Enumerable = Ember.Mixin.create({
     return this ;
   }
 
-}) ;
+});
+
+if (Ember.FEATURES.isEnabled("ember-runtime-sortBy")) {
+  Ember.Enumerable.reopen({
+    /**
+      Converts the enumerable into an array and sorts by the keys
+      specified in the argument.
+
+      You may provide multiple arguments to sort by multiple properties.
+
+      @method sortBy
+      @param {String} property name(s) to sort on
+      @return {Array} The sorted array.
+    */
+    sortBy: function() {
+      var sortKeys = arguments;
+      return this.toArray().sort(function(a, b){
+        for(var i = 0; i < sortKeys.length; i++) {
+          var key = sortKeys[i],
+              propA = get(a, key),
+              propB = get(b, key);
+          // return 1 or -1 else continue to the next sortKey
+          var compareValue = Ember.compare(propA, propB);
+          if (compareValue) { return compareValue; }
+        }
+        return 0;
+      });
+    }
+  });
+}
 
 })();
 
@@ -11251,7 +11293,7 @@ DependentArraysObserver.prototype = {
   },
 
   itemPropertyDidChange: function(obj, keyName, array, observerContext) {
-    Ember.run.once(this, 'flushChanges');
+    this.flushChanges();
   },
 
   flushChanges: function() {
@@ -11532,7 +11574,7 @@ ReduceComputedProperty.prototype.property = function () {
   If there are more than one arguments the first arguments are
   considered to be dependent property keys. The last argument is
   required to be an options object. The options object can have the
-  following four properties.
+  following four properties:
 
   `initialValue` - A value or function that will be used as the initial
   value for the computed. If this property is a function the result of calling
@@ -15356,6 +15398,7 @@ Ember.SubArray.prototype = {
       if (otherOp.type === op.type) {
         op.count += otherOp.count;
         this._operations.splice(index-1, 1);
+        --index;
       }
     }
 
@@ -15366,6 +15409,14 @@ Ember.SubArray.prototype = {
         this._operations.splice(index+1, 1);
       }
     }
+  },
+
+  toString: function () {
+    var str = "";
+    forEach(this._operations, function (operation) {
+      str += " " + operation.type + ":" + operation.count;
+    });
+    return str.substring(1);
   }
 };
 
@@ -16097,6 +16148,34 @@ Ember.CoreObject = CoreObject;
 @module ember
 @submodule ember-runtime
 */
+
+if (Ember.FEATURES.isEnabled("em-o")) {
+  /**
+    Shorthand for `Ember.Object.create(properties)`.
+
+    Wraps a vanilla/native object in an `Ember.Object` instance with the same
+    properties. The `properties` argument will not be altered.
+
+    If you pass an instance of `Ember.Object` as the `properties` argument, the
+    same object will be returned.
+ 
+    Example:
+ 
+    ```javascript
+    var john1 = Ember.O({name: 'John'});
+    //...has the same effect as:
+    var john2 = Ember.Object.create({name: 'John'});
+
+    console.log(john1 === Em.O(john1); //true
+    ```
+ 
+    @param {Object} [properties]
+    @returns Ember.Object
+  */
+  Ember.O = function(properties) {
+    return Ember.Object.detectInstance(properties) ? properties : Ember.Object.create(properties);
+  };
+}
 
 /**
   `Ember.Object` is the main base class for all Ember objects. It is a subclass
@@ -28104,8 +28183,9 @@ function program7(depth0,data) {
   groupedContent: Ember.computed(function() {
     var groupPath = get(this, 'optionGroupPath');
     var groupedContent = Ember.A();
+    var content = get(this, 'content') || [];
 
-    forEach(get(this, 'content'), function(item) {
+    forEach(content, function(item) {
       var label = get(item, groupPath);
 
       if (get(groupedContent, 'lastObject.label') !== label) {
@@ -29123,7 +29203,7 @@ define("route-recognizer",
         }
         for(var key in params) {
           if (params.hasOwnProperty(key)) {
-            if(!~allowedParams.indexOf(key)) {
+            if(allowedParams.indexOf(key) === -1) {
               throw 'Query param "' + key + '" is not specified as a valid param for this route';
             }
             var value = params[key];
@@ -29156,7 +29236,7 @@ define("route-recognizer",
             pathLen, i, l, queryStart, queryParams = {};
 
         queryStart = path.indexOf('?');
-        if (~queryStart) {
+        if (queryStart !== -1) {
           var queryString = path.substr(queryStart + 1, path.length);
           path = path.substr(0, queryStart);
           queryParams = this.parseQueryString(queryString);
@@ -30128,7 +30208,7 @@ define("router",
       @private
 
       This function is called when transitioning from one URL to
-      another to determine which handlers are not longer active,
+      another to determine which handlers are no longer active,
       which handlers are newly active, and which handlers remain
       active but have their context changed.
 
@@ -30322,6 +30402,9 @@ define("router",
               currentHandlerInfos.length !== matchPointResults.matchPoint) {
             finalizeTransition(transition, handlerInfos);
           }
+
+          // currentHandlerInfos was updated in finalizeTransition
+          trigger(router, router.currentHandlerInfos, true, ['didTransition']);
 
           if (router.didTransition) {
             router.didTransition(handlerInfos);
@@ -30869,7 +30952,7 @@ var DefaultView = Ember._MetamorphView;
   @namespace Ember
   @extends Ember.Object
 */
-Ember.Router = Ember.Object.extend({
+Ember.Router = Ember.Object.extend(Ember.Evented, {
   location: 'hash',
 
   init: function() {
@@ -30913,6 +30996,12 @@ Ember.Router = Ember.Object.extend({
     set(appController, 'currentRouteName', infos[infos.length - 1].name);
 
     this.notifyPropertyChange('url');
+
+    if (Ember.FEATURES.isEnabled("ember-routing-didTransition-hook")) {
+      // Put this in the runloop so url will be accurate. Seems
+      // less surprising than didTransition being out of sync.
+      Ember.run.once(this, this.trigger, 'didTransition');
+    }
 
     if (get(this, 'namespace').LOG_TRANSITIONS) {
       Ember.Logger.log("Transitioned into '" + path + "'");
@@ -32856,6 +32945,16 @@ Ember.onLoad('Ember.Handlebars', function(Handlebars) {
           types = options.types,
           data = options.data;
 
+      if (Ember.FEATURES.isEnabled("query-params")) {
+        if (parameters.params.length === 0) {
+          var appController = this.container.lookup('controller:application');
+          return [get(appController, 'currentRouteName')];
+        } else {
+          return resolveParams(parameters.context, parameters.params, { types: types, data: data });
+        }
+      }
+
+      // Original implementation if query params not enabled
       return resolveParams(parameters.context, parameters.params, { types: types, data: data });
     }).property(),
 
@@ -35434,8 +35533,7 @@ var Application = Ember.Application = Ember.Namespace.extend(Ember.DeferredMixin
     if (!this.$) { this.$ = Ember.$; }
     this.__container__ = this.buildContainer();
 
-    this.Router = this.Router || this.defaultRouter();
-    if (this.Router) { this.Router.namespace = this; }
+    this.Router = this.defaultRouter();
 
     this._super();
 
@@ -35494,13 +35592,17 @@ var Application = Ember.Application = Ember.Namespace.extend(Ember.DeferredMixin
     @method defaultRouter
     @return {Ember.Router} the default router
   */
+
   defaultRouter: function() {
-    // Create a default App.Router if one was not supplied to make
-    // it possible to do App.Router.map(...) without explicitly
-    // creating a router first.
-    if (this.router === undefined) {
-      return Ember.Router.extend();
+    if (this.Router === false) { return; }
+    var container = this.__container__;
+
+    if (this.Router) {
+      container.unregister('router:main');
+      container.register('router:main', this.Router);
     }
+
+    return container.lookupFactory('router:main');
   },
 
   /**
@@ -35656,7 +35758,11 @@ var Application = Ember.Application = Ember.Namespace.extend(Ember.DeferredMixin
     if (this.isDestroyed) { return; }
 
     // At this point, the App.Router must already be assigned
-    this.register('router:main', this.Router);
+    if (this.Router) {
+      var container = this.__container__;
+      container.unregister('router:main');
+      container.register('router:main', this.Router);
+    }
 
     this.runInitializers();
     Ember.runLoadHooks('application', this);
@@ -35879,7 +35985,7 @@ Ember.Application.reopenClass({
   initializer: function(initializer) {
     var initializers = get(this, 'initializers');
 
-    Ember.assert("The initializer '" + initializer.name + "' has already been registered", !initializers.findBy('name', initializers.name));
+    Ember.assert("The initializer '" + initializer.name + "' has already been registered", !Ember.A(initializers).findBy('name', initializers.name));
     Ember.assert("An initializer cannot be registered with both a before and an after", !(initializer.before && initializer.after));
     Ember.assert("An initializer cannot be registered without an initialize function", Ember.canInvoke(initializer, 'initialize'));
 
@@ -35934,6 +36040,7 @@ Ember.Application.reopenClass({
     container.register('route:basic', Ember.Route, { instantiate: false });
     container.register('event_dispatcher:main', Ember.EventDispatcher);
 
+    container.register('router:main',  Ember.Router);
     container.injection('router:main', 'namespace', 'application:main');
 
     container.injection('controller', 'target', 'router:main');
@@ -36072,6 +36179,8 @@ Ember.ControllerMixin.reopen({
     length = get(needs, 'length');
 
     if (length > 0) {
+      Ember.assert(' `' + Ember.inspect(this) + ' specifies `needs`, but does not have a container. Please ensure this controller was instantiated with a container.', this.container);
+
       verifyNeedsDependencies(this, this.container, needs);
 
       // if needs then initialize controllers proxy
@@ -36756,7 +36865,66 @@ Ember.Test = {
    @type {Class} The adapter to be used.
    @default Ember.Test.QUnitAdapter
   */
-  adapter: null
+  adapter: null,
+  /**
+     `registerWaiter` is used to register a callback that will check
+     for additional in-progress actions whenever `wait()` is
+     called. `wait()` will not resolve until your callback returns
+     true.
+
+     This allows ember-testing to play nicely with other asynchronous
+     events, such as an application that is waiting for a CSS3
+     transition or an IndexDB transaction.
+
+     For example:
+     ```javascript
+     Ember.Test.registerWaiter(function() {
+     return myPendingTransactions() == 0;
+     });
+     ```
+     The `context` argument allows you to optionally specify the `this`
+     with which your callback will be invoked.
+
+     For example:
+     ```javascript
+     Ember.Test.registerWaiter(MyDB, MyDB.hasPendingTransactions);
+     ```
+     @public
+     @method registerWaiter
+     @param {Object} context (optional)
+     @param {Function} callback
+  */
+  registerWaiter: function(context, callback) {
+    if (arguments.length === 1) {
+      callback = context;
+      context = null;
+    }
+    if (!this.waiters) {
+      this.waiters = Ember.A();
+    }
+    this.waiters.push([context, callback]);
+  },
+  /**
+     `unregisterWaiter` is used to unregister a callback that was
+     registered with `registerWaiter`.
+
+     @public
+     @method unregisterWaiter
+     @param {Object} context (optional)
+     @param {Function} callback
+  */
+  unregisterWaiter: function(context, callback) {
+    var pair;
+    if (!this.waiters) { return; }
+    if (arguments.length === 1) {
+      callback = context;
+      context = null;
+    }
+    pair = [context, callback];
+    this.waiters = Ember.A(this.waiters.filter(function(elt) {
+      return Ember.compare(elt, pair)!==0;
+    }));
+  }
 };
 
 function curry(app, fn) {
@@ -37098,6 +37266,13 @@ function wait(app, value) {
       if (routerIsLoading) { return; }
       if (Test.pendingAjaxRequests) { return; }
       if (Ember.run.hasScheduledTimers() || Ember.run.currentRunLoop) { return; }
+      if (Ember.FEATURES.isEnabled("ember-testing-wait-hooks")) {
+        if (Test.waiters && Test.waiters.any(function(waiter) {
+          var context = waiter[0];
+          var callback = waiter[1];
+          return !callback.apply(context);
+        })) { return; }
+      }
 
       clearInterval(watcher);
 
