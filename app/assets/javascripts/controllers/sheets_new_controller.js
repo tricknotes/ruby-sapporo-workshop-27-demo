@@ -1,4 +1,4 @@
-Account.IndexController = Ember.ObjectController.extend({
+Account.SheetsNewController = Ember.ObjectController.extend({
   actions: {
     addOrderLine: function() {
       this.get('orderLines').createRecord();

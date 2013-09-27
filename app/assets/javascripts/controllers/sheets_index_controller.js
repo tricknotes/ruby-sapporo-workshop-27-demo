@@ -1,4 +1,4 @@
-Account.SheetsController = Ember.ArrayController.extend({
+Account.SheetsIndexController = Ember.ArrayController.extend({
   actions: {
     deleteSheet: function(sheet) {
       if (!confirm('Are you sure?')) {
