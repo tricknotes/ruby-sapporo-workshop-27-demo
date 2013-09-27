@@ -16,7 +16,7 @@
 //= require ember
 //= require ember-data
 //= require_self
-//= require demo_app
+//= require account
 
 // for more details see: http://emberjs.com/guides/application/
 Account = Ember.Application.create();
