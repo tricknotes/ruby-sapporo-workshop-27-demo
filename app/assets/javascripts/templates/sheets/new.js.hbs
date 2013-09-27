@@ -1,6 +1,6 @@
 <h1>帳票登録</h1>
 
-<table>
+<table id="new-sheet">
   <tr>
     <th>商品名</th>
     <th>単価</th>
@@ -10,9 +10,9 @@
   </tr>
   {{#each orderLines}}
     <tr>
-      <td>{{input value=productName placeholder='商品名を入力してください'}}</td>
-      <td>{{input type=number value=unitPrice}}</td>
-      <td>{{input type=number value=count}}</td>
+      <td>{{input value=productName placeholder='商品名を入力してください' name='productName'}}</td>
+      <td>{{input type=number value=unitPrice name='unitPrice'}}</td>
+      <td>{{input type=number value=count name='count'}}</td>
       <td>
         <i class="icon-jpy"></i>
         {{subtotal}}
@@ -26,7 +26,7 @@
   {{/each}}
   <tr>
     <td colspan="3"></td>
-    <td>
+    <td class="total">
       <i class="icon-jpy"></i>
       {{total}}
     </td>
