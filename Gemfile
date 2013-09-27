@@ -30,5 +30,6 @@ gem 'font-awesome-rails'
 group :test do
   gem 'poltergeist', require: 'capybara/poltergeist'
   gem 'rspec-rails', group: :development
+  gem 'factory_girl_rails'
   gem 'database_rewinder'
 end
