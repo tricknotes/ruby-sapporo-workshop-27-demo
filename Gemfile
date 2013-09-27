@@ -26,3 +26,8 @@ gem 'jquery-rails'
 gem 'momentjs-rails'
 
 gem 'font-awesome-rails'
+
+group :test do
+  gem 'capybara-webkit'
+  gem 'rspec-rails'
+end
