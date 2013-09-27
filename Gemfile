@@ -28,7 +28,7 @@ gem 'momentjs-rails'
 gem 'font-awesome-rails'
 
 group :test do
-  gem 'capybara-webkit'
-  gem 'rspec-rails'
+  gem 'poltergeist', require: 'capybara/poltergeist'
+  gem 'rspec-rails', group: :development
   gem 'database_rewinder'
 end
